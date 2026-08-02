@@ -1,12 +1,20 @@
-import RegistrationForm from './components/RegistrationForm.jsx'
+import { Navigate, Route, Routes } from 'react-router-dom'
 import './App.css'
+import ProtectedRoute from './components/ProtectedRoute.jsx'
+import HomePage from './pages/HomePage.jsx'
+import LoginPage from './pages/LoginPage.jsx'
+import RegisterPage from './pages/RegisterPage.jsx'
 
 function App() {
   return (
-    <main className="app">
-      <h1>Registration App</h1>
-      <RegistrationForm />
-    </main>
+    <Routes>
+      <Route path="/login" element={<LoginPage />} />
+      <Route path="/register" element={<RegisterPage />} />
+      <Route element={<ProtectedRoute />}>
+        <Route path="/" element={<HomePage />} />
+      </Route>
+      <Route path="*" element={<Navigate to="/" replace />} />
+    </Routes>
   )
 }
 

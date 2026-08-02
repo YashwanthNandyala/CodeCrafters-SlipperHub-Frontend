@@ -68,7 +68,7 @@ const FIELDS = [
   },
 ]
 
-export default function RegistrationForm() {
+export default function RegistrationForm({ onSuccess }) {
   const [form, setForm] = useState(EMPTY_FORM)
   const [errors, setErrors] = useState({})
   const [loading, setLoading] = useState(false)
@@ -112,6 +112,7 @@ export default function RegistrationForm() {
       setForm(EMPTY_FORM)
       setErrors({})
       setSubmitted(true)
+      onSuccess?.()
     } catch (err) {
       if (err.status === 400) {
         const fieldErrors = err.data?.message
@@ -136,8 +137,6 @@ export default function RegistrationForm() {
 
   return (
     <form className="registration-form" onSubmit={handleSubmit} noValidate>
-      <h2>Create an account</h2>
-
       {FIELDS.map((field) => {
         const errorId = `${field.name}-error`
         const hasError = Boolean(errors[field.name])
@@ -179,7 +178,7 @@ export default function RegistrationForm() {
       )}
 
       <button type="submit" className="submit-button" disabled={loading}>
-        {loading ? 'Registering...' : 'Register'}
+        {loading ? 'Creating Account...' : 'Create Account'}
       </button>
     </form>
   )
