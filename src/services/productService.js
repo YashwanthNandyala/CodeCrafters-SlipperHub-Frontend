@@ -11,11 +11,13 @@ function networkError() {
 function normalizeProduct(item) {
   const images = Array.isArray(item.images) ? item.images : []
   const numericPrice = Number(item.price)
+  const numericStock = Number(item.stock)
   return {
     id: item.productId ?? item.id,
     name: item.name ?? item.productName,
     description: item.description ?? item.productDescription ?? '',
     price: Number.isNaN(numericPrice) ? 0 : numericPrice,
+    stock: Number.isNaN(numericStock) ? 0 : numericStock,
     imageUrl:
       item.imageUrl ??
       item.image ??

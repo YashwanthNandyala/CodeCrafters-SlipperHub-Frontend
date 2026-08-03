@@ -11,9 +11,10 @@ function formatPrice(price) {
 
 export default function ProductCard({ product, onAddToCart }) {
   const [adding, setAdding] = useState(false)
+  const outOfStock = Number(product.stock ?? 0) <= 0
 
   const handleAddToCart = async () => {
-    if (adding) return
+    if (adding || outOfStock) return
     setAdding(true)
     try {
       await onAddToCart(product.id)
@@ -35,9 +36,9 @@ export default function ProductCard({ product, onAddToCart }) {
           type="button"
           className="add-to-cart-button"
           onClick={handleAddToCart}
-          disabled={adding}
+          disabled={adding || outOfStock}
         >
-          {adding ? 'Adding...' : 'Add To Cart'}
+          {adding ? 'Adding...' : outOfStock ? 'Out of Stock' : 'Add To Cart'}
         </button>
       </div>
     </article>
