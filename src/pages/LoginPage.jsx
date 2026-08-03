@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Link, useLocation, useNavigate, useSearchParams } from 'react-router-dom'
+import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext.jsx'
 
 export default function LoginPage() {
@@ -11,10 +11,8 @@ export default function LoginPage() {
 
   const { login } = useAuth()
   const navigate = useNavigate()
-  const location = useLocation()
   const [searchParams] = useSearchParams()
 
-  const from = location.state?.from?.pathname ?? '/'
   const justRegistered = searchParams.get('registered')
 
   const handleSubmit = async (e) => {
@@ -34,10 +32,7 @@ export default function LoginPage() {
     setLoading(true)
     try {
       await login(identifier.trim(), password)
-      navigate(from, {
-        replace: true,
-        state: { ...location.state, loggedIn: true },
-      })
+      navigate('/customer-home', { replace: true })
     } catch (err) {
       if (err.status === 401) {
         setServerError('Incorrect credentials')
