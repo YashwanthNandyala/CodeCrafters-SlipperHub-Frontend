@@ -4,6 +4,7 @@ import ProtectedRoute from './components/ProtectedRoute.jsx'
 import CartPage from './pages/CartPage.jsx'
 import CustomerHomePage from './pages/CustomerHomePage.jsx'
 import LoginPage from './pages/LoginPage.jsx'
+import OrdersPage from './pages/OrdersPage.jsx'
 import RegisterPage from './pages/RegisterPage.jsx'
 
 function App() {
@@ -15,6 +16,7 @@ function App() {
         <Route path="/" element={<Navigate to="/customer-home" replace />} />
         <Route path="/customer-home" element={<CustomerHomePage />} />
         <Route path="/cart" element={<CartPage />} />
+        <Route path="/orders" element={<OrdersPage />} />
       </Route>
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>

@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { Link, Navigate } from 'react-router-dom'
+import { Link, Navigate, useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext.jsx'
 import {
   deleteCartItem,
@@ -7,6 +7,7 @@ import {
   fetchCartCount,
   updateCartItem,
 } from '../services/cartService.js'
+import { createOrder, verifyPayment } from '../services/paymentService.js'
 import CustomerHeader from '../components/CustomerHeader.jsx'
 import { isTokenValid } from '../utils/token.js'
 
@@ -21,14 +22,55 @@ function formatPrice(price) {
   return priceFormatter.format(price)
 }
 
+let razorpayScriptPromise = null
+
+function loadRazorpayScript() {
+  if (razorpayScriptPromise) return razorpayScriptPromise
+  razorpayScriptPromise = new Promise((resolve, reject) => {
+    if (window.Razorpay) {
+      resolve()
+      return
+    }
+    const script = document.createElement('script')
+    script.src = 'https://checkout.razorpay.com/v1/checkout.js'
+    script.async = true
+    script.onload = () => {
+      if (window.Razorpay) {
+        resolve()
+      } else {
+        reject(new Error('Payment script loaded but failed to initialize.'))
+      }
+    }
+    script.onerror = () => {
+      reject(
+        new Error(
+          'Could not load the payment script. Please check your connection and try again.',
+        ),
+      )
+    }
+    setTimeout(() => {
+      if (!window.Razorpay) {
+        reject(new Error('Payment script timed out. Please try again.'))
+      }
+    }, 15000)
+    document.body.appendChild(script)
+  }).catch((error) => {
+    razorpayScriptPromise = null
+    throw error
+  })
+  return razorpayScriptPromise
+}
+
 export default function CartPage() {
   const { user, token, logout } = useAuth()
+  const navigate = useNavigate()
   const [items, setItems] = useState([])
   const [overallTotalPrice, setOverallTotalPrice] = useState(0)
   const [cartCount, setCartCount] = useState(0)
   const [cartLoading, setCartLoading] = useState(true)
   const [cartError, setCartError] = useState('')
   const [busyProductId, setBusyProductId] = useState(null)
+  const [checkoutPending, setCheckoutPending] = useState(false)
   const [toast, setToast] = useState(null)
   const toastTimer = useRef(null)
 
@@ -114,8 +156,81 @@ export default function CartPage() {
     }
   }
 
-  const handleCheckout = () => {
-    showToast('Checkout is coming soon.')
+  const handleCheckout = async () => {
+    if (checkoutPending) return
+    setCheckoutPending(true)
+    try {
+      const order = await createOrder(token)
+      await loadRazorpayScript()
+
+      const options = {
+        key: order.keyId,
+        amount: order.amount,
+        currency: order.currency,
+        name: 'ShoesHub',
+        description: `Order ${order.applicationOrderId}`,
+        order_id: order.razorpayOrderId,
+        prefill: {
+          name: user.fullName,
+          email: user.email,
+        },
+        theme: { color: '#535bf2' },
+        modal: {
+          ondismiss: () => {
+            setCheckoutPending(false)
+            showToast('Payment cancelled. Your cart is unchanged.', true)
+          },
+        },
+        handler: async (response) => {
+          try {
+            const verify = await verifyPayment(
+              {
+                razorpayPaymentId: response.razorpay_payment_id,
+                razorpayOrderId: response.razorpay_order_id,
+                razorpaySignature: response.razorpay_signature,
+              },
+              token,
+            )
+            if (verify?.success) {
+              showToast('Payment successful! Redirecting to your orders.')
+              navigate('/orders')
+            } else {
+              showToast(
+                verify?.message ||
+                  'Payment could not be confirmed. Your order has not been marked as paid.',
+                true,
+              )
+            }
+          } catch (err) {
+            if (err.status === 401) {
+              logout()
+              return
+            }
+            showToast(
+              err.message ||
+                'Payment could not be verified. Your order is not marked as paid.',
+              true,
+            )
+          } finally {
+            setCheckoutPending(false)
+          }
+        },
+      }
+
+      const razorpay = new window.Razorpay(options)
+      razorpay.on('payment.failed', () => {
+        setCheckoutPending(false)
+        showToast('Payment failed. Your order has not been marked as paid.', true)
+      })
+      razorpay.open()
+    } catch (err) {
+      if (err.status === 401) {
+        logout()
+        return
+      }
+      showToast(err.message || 'Could not start payment. Please try again.', true)
+      setCheckoutPending(false)
+    }
   }
 
   useEffect(() => {
@@ -239,8 +354,9 @@ export default function CartPage() {
                   type="button"
                   className="checkout-button"
                   onClick={handleCheckout}
+                  disabled={checkoutPending}
                 >
-                  Proceed to Checkout
+                  {checkoutPending ? 'Processing...' : 'Proceed to Checkout'}
                 </button>
               </aside>
             </div>

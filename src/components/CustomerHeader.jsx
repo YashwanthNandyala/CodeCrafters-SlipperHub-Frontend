@@ -1,5 +1,5 @@
 import { useNavigate } from 'react-router-dom'
-import { FaRegUserCircle, FaShoppingCart } from 'react-icons/fa'
+import { FaRegUserCircle, FaShoppingCart, FaReceipt } from 'react-icons/fa'
 
 export default function CustomerHeader({ userName, cartCount }) {
   const navigate = useNavigate()
@@ -17,6 +17,14 @@ export default function CustomerHeader({ userName, cartCount }) {
 
       <div className="customer-actions">
         <span className="customer-user-name">{userName}</span>
+        <button
+          type="button"
+          className="icon-button"
+          aria-label="Orders"
+          onClick={() => navigate('/orders')}
+        >
+          <FaReceipt />
+        </button>
         <button type="button" className="icon-button" aria-label="Profile">
           <FaRegUserCircle />
         </button>
