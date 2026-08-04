@@ -1,5 +1,5 @@
 import { createContext, useCallback, useContext, useState } from 'react'
-import { loginUser } from '../services/authApi.js'
+import { loginUser, logoutUser } from '../services/authApi.js'
 
 const TOKEN_KEY = 'registration.token'
 const USER_KEY = 'registration.user'
@@ -45,11 +45,20 @@ export function AuthProvider({ children }) {
     setUser(null)
   }, [])
 
+  const logoutFromServer = useCallback(async () => {
+    if (!token) {
+      logout()
+      return
+    }
+    await logoutUser(token)
+    logout()
+  }, [token, logout])
+
   const isAuthenticated = Boolean(token && user)
 
   return (
     <AuthContext.Provider
-      value={{ user, token, isAuthenticated, login, logout }}
+      value={{ user, token, isAuthenticated, login, logout, logoutFromServer }}
     >
       {children}
     </AuthContext.Provider>
