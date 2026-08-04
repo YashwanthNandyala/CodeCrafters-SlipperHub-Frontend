@@ -9,11 +9,12 @@ export default function LoginPage() {
   const [serverError, setServerError] = useState('')
   const [loading, setLoading] = useState(false)
 
-  const { login } = useAuth()
+  const { login, logout } = useAuth()
   const navigate = useNavigate()
   const [searchParams] = useSearchParams()
 
   const justRegistered = searchParams.get('registered')
+  const isAdminMode = searchParams.get('mode') === 'admin'
 
   const handleSubmit = async (e) => {
     e.preventDefault()
@@ -31,8 +32,17 @@ export default function LoginPage() {
 
     setLoading(true)
     try {
-      await login(identifier.trim(), password)
-      navigate('/customer-home', { replace: true })
+      const response = await login(identifier.trim(), password)
+      if (isAdminMode) {
+        if (response.role !== 'ADMIN') {
+          logout()
+          setServerError('Only admin accounts can access the admin panel.')
+        } else {
+          navigate('/admin', { replace: true })
+        }
+      } else {
+        navigate(response.role === 'ADMIN' ? '/admin' : '/customer-home', { replace: true })
+      }
     } catch (err) {
       if (err.status === 401) {
         setServerError('Incorrect credentials')
@@ -47,8 +57,12 @@ export default function LoginPage() {
   return (
     <main className="auth-page">
       <div className="auth-card">
-        <h1 className="auth-heading">Login</h1>
-        <p className="auth-subtitle">Enter your credentials to continue</p>
+        <h1 className="auth-heading">{isAdminMode ? 'Admin Login' : 'Login'}</h1>
+        <p className="auth-subtitle">
+          {isAdminMode
+            ? 'Sign in with an admin account to manage the store'
+            : 'Enter your credentials to continue'}
+        </p>
 
         <form className="registration-form" onSubmit={handleSubmit} noValidate>
           {justRegistered && (
@@ -106,13 +120,21 @@ export default function LoginPage() {
           )}
 
           <button type="submit" className="submit-button" disabled={loading}>
-            {loading ? 'Signing in...' : 'Login'}
+            {loading ? 'Signing in...' : isAdminMode ? 'Admin Login' : 'Login'}
           </button>
         </form>
 
+        {isAdminMode ? (
+          <p className="auth-switch">
+            Looking for customer access? <Link to="/login">Customer login</Link>
+          </p>
+        ) : (
+          <p className="auth-switch">
+            Are you an admin? <Link to="/login?mode=admin">Admin login</Link>
+          </p>
+        )}
         <p className="auth-switch">
-          Don&apos;t have an account?{' '}
-          <Link to="/register">Create account</Link>
+          Don&apos;t have an account? <Link to="/register">Create account</Link>
         </p>
       </div>
     </main>
